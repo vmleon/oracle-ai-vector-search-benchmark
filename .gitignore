@@ -212,3 +212,4 @@ terraform.rc
 ## Misc
 samples/
 claude.md
+dataset/pdfs.zip
