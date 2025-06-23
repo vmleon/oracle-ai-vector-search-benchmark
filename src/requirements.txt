@@ -1,0 +1,6 @@
+vllm==0.9.1
+docling==2.37.0
+Flask==3.1.1
+gunicorn==23.0.0
+python-dotenv==1.1.0
+flask-cors==6.0.1
