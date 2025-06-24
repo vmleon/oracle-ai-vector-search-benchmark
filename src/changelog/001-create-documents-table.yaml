@@ -1,0 +1,46 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-documents-table
+      author: vector-benchmark
+      comment: Create documents table for storing document metadata
+      changes:
+        - createTable:
+            tableName: documents
+            columns:
+              - column:
+                  name: id
+                  type: NUMBER
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: filename
+                  type: VARCHAR2(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: title
+                  type: VARCHAR2(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: page_count
+                  type: NUMBER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: upload_time
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: true
+              - column:
+                  name: file_hash
+                  type: VARCHAR2(64)
+                  constraints:
+                    nullable: true
+                    unique: true
+      rollback:
+        - dropTable:
+            tableName: documents

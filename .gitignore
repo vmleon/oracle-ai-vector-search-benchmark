@@ -211,5 +211,5 @@ terraform.rc
 
 ## Misc
 samples/
+db_data/
 claude.md
-dataset/pdfs.zip

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-vector-index
+      author: vector-benchmark
+      comment: Create vector index on embeddings for similarity search
+      changes:
+        - sql:
+            sql: CREATE INDEX idx_chunks_embedding ON document_chunks (embedding) INDEXTYPE IS VECTOR
+            stripComments: true
+      rollback:
+        - sql:
+            sql: DROP INDEX idx_chunks_embedding

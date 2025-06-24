@@ -1,0 +1,7 @@
+databaseChangeLog:
+  - include:
+      file: changelog/001-create-documents-table.yaml
+  - include:
+      file: changelog/002-create-document-chunks-table.yaml
+#   - include:
+#       file: changelog/003-create-vector-index.yaml

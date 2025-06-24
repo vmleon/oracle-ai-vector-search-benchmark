@@ -1,0 +1,52 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-document-chunks-table
+      author: vector-benchmark
+      comment: Create document_chunks table for storing text chunks with vector embeddings
+      changes:
+        - createTable:
+            tableName: document_chunks
+            columns:
+              - column:
+                  name: id
+                  type: NUMBER
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: document_id
+                  type: NUMBER
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_document_chunks_document_id
+                    references: documents(id)
+              - column:
+                  name: chunk_index
+                  type: NUMBER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: chunk_text
+                  type: CLOB
+                  constraints:
+                    nullable: false
+              - column:
+                  name: embedding
+                  type: VECTOR(4096,FLOAT32)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: chunk_size
+                  type: NUMBER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: created_time
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropTable:
+            tableName: document_chunks
