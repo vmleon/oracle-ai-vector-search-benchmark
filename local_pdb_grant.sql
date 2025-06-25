@@ -18,9 +18,13 @@ grant
    create view
 to pdbadmin;
 
-   -- Ensure unlimited tablespace quota
+-- Ensure unlimited tablespace quota
 grant
    unlimited tablespace
 to pdbadmin;
+
+grant execute on dbms_aq to pdbadmin;
+grant execute on dbms_aqadm to pdbadmin;
+grant aq_administrator_role to pdbadmin;
 
 exit;

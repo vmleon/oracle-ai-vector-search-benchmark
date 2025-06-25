@@ -1,0 +1,27 @@
+GET http://localhost:8000/health/live
+
+###
+GET http://localhost:8000/health/ready
+
+###
+POST http://localhost:8000/embeddings
+content-type: application/json
+
+{
+    "texts": [
+      "Sample text for embedding generation",
+      "Another text to process"
+    ]
+}
+
+###
+POST http://localhost:8000/upload
+content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="0a29925ccc5e6299e132a73325956a3abef6dd26.pdf"
+Content-Type: application/pdf
+
+< ./samples/0a29925ccc5e6299e132a73325956a3abef6dd26.pdf
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--

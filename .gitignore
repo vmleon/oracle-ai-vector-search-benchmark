@@ -212,4 +212,5 @@ terraform.rc
 ## Misc
 samples/
 db_data/
+temp/
 claude.md

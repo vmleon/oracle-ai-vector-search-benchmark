@@ -15,6 +15,7 @@ from dotenv import load_dotenv, set_key
 load_dotenv()
 
 def setup():
+    os.makedirs("temp", exist_ok=True)
     os.makedirs("db_data", exist_ok=True)
     os.makedirs("samples", exist_ok=True)
 
@@ -121,11 +122,21 @@ def run():
     try:
         subprocess.run([
                 "sql", f"sys/{password}@localhost:1521/FREE", "as", 
-                "sysdba", "@local-pdb-grant.sql"
+                "sysdba", "@local_pdb_grant.sql"
             ], check=True)
         print("✓ Database user grant permissions successfully")
     except subprocess.CalledProcessError as e:
         print(f"Error: Failed to grand user permissions: {e}")
+        sys.exit(1)
+
+    # Create the queues
+    try:
+        subprocess.run([
+                "sql", f"pdbadmin/{password}@localhost:1521/FREEPDB1" "@pdb_queues.sql"
+            ], check=True)
+        print("✓ Database created queues successfully")
+    except subprocess.CalledProcessError as e:
+        print(f"Error: Failed to create queues: {e}")
         sys.exit(1)
     
     # TODO from src/ run liquibase update
@@ -142,7 +153,7 @@ def run():
 
     print("\nDatabase setup complete!")
     print("Change directory to src and run the application vector_maker with this command:")
-    print("gunicorn -w 1 -b 0.0.0.0:8000 vector_maker:app")
+    print("gunicorn -w 1 --timeout 300 --graceful-timeout 300 -b 0.0.0.0:8000 vector_maker:app")
 
 def cleanup():
     # Stop and remove container ora_vector_benchmark using podman
@@ -157,6 +168,8 @@ def cleanup():
         shutil.rmtree("samples")
     if os.path.exists("db_data"):
         shutil.rmtree("db_data")
+    if os.path.exists("temp"):
+        shutil.rmtree("temp")
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
