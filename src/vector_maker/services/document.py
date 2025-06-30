@@ -5,7 +5,8 @@ import logging
 from docling.document_converter import DocumentConverter
 from config import CHUNK_SIZE, CHUNK_OVERLAP, TEMP_DIR
 from models import get_model, is_model_ready
-from database import store_document, store_document_chunks
+from database import store_document, store_document_chunks, store_document_chunks_without_embeddings
+from .queue import enqueue_chunk_for_embedding
 
 logger = logging.getLogger(__name__)
 
@@ -80,10 +81,6 @@ def process_document(file, include_embeddings=False):
         # Chunk the text
         chunks = chunk_text(text_content)
         
-        # Generate embeddings for chunks
-        model = get_model()
-        outputs = model.embed(chunks)
-        
         # Store document in database
         document_id = store_document(
             filename=file.filename,
@@ -94,16 +91,14 @@ def process_document(file, include_embeddings=False):
 
         logger.info(f"Document {file.filename} chunked in {len(chunks)} chunks.")
         
-        # Prepare chunks with embeddings for database storage
-        chunks_with_embeddings = [
-            (chunk, output.outputs.embedding) 
-            for chunk, output in zip(chunks, outputs)
-        ]
+        # Store chunks without embeddings in database
+        store_document_chunks_without_embeddings(document_id, chunks)
         
-        # Store chunks and embeddings in database
-        store_document_chunks(document_id, chunks_with_embeddings)
+        # Enqueue chunks for embedding processing
+        for i, chunk in enumerate(chunks):
+            enqueue_chunk_for_embedding(document_id, i, chunk)
         
-        # Format response (exclude embeddings for performance)
+        # Format response
         response_data = {
             'document_id': document_id,
             'filename': file.filename,
@@ -111,20 +106,12 @@ def process_document(file, include_embeddings=False):
             'page_count': document_page_count,
             'chunks_count': len(chunks),
             'file_hash': file_hash,
-            'message': 'Document processed and stored successfully'
+            'message': 'Document processed and queued for embedding generation'
         }
         
-        # Optionally include embeddings in response if requested
+        # Note: Embeddings are now generated asynchronously via queue
         if include_embeddings:
-            response_data['embeddings'] = [
-                {
-                    'chunk_index': i,
-                    'text': chunk,
-                    'embedding': output.outputs.embedding,
-                    'size': len(output.outputs.embedding)
-                }
-                for i, (chunk, output) in enumerate(zip(chunks, outputs))
-            ]
+            response_data['note'] = 'Embeddings will be generated asynchronously. Use the search endpoint once processing is complete.'
         
         logger.info(f"Successfully processed and stored document: {file.filename} (ID: {document_id})")
         return response_data

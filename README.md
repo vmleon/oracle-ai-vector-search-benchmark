@@ -441,6 +441,7 @@ CREATE INDEX idx_chunks_embedding ON document_chunks (embedding) INDEXTYPE IS VE
 - **Schema Management**: Liquibase-based database schema versioning and migrations
 
 ### 🚧 Planned Features
+
 - Add batch processing capabilities
 - Include a status endpoint that returns information about number of documents, chunks and queue elements
 - Test document parsing across all supported formats
@@ -448,3 +449,5 @@ CREATE INDEX idx_chunks_embedding ON document_chunks (embedding) INDEXTYPE IS VE
 - Include Prometheus and Grafana for monitoring and visualization
 - Add authentication and authorization
 - Implement document metadata search
+- Deploy on the cloud
+- Improve performance, start with pip install triton on GPU instances

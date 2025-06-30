@@ -1,5 +1,5 @@
 from .connection import init_database, get_db_pool, is_db_ready, cleanup_database
-from .operations import store_document, store_document_chunks, search_similar_chunks
+from .operations import store_document, store_document_chunks, store_document_chunks_without_embeddings, update_chunk_embedding, search_similar_chunks
 
 __all__ = [
     'init_database',
@@ -8,5 +8,7 @@ __all__ = [
     'cleanup_database',
     'store_document',
     'store_document_chunks',
+    'store_document_chunks_without_embeddings',
+    'update_chunk_embedding',
     'search_similar_chunks'
 ]
