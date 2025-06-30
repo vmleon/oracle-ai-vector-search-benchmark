@@ -438,13 +438,13 @@ CREATE INDEX idx_chunks_embedding ON document_chunks (embedding) INDEXTYPE IS VE
 - **File Deduplication**: SHA256-based duplicate detection
 - **Health Monitoring**: Comprehensive health checks for model and database
 - **Error Handling**: Robust error handling and logging throughout
+- **Schema Management**: Liquibase-based database schema versioning and migrations
 
 ### 🚧 Planned Features
-
+- Add batch processing capabilities
+- Include a status endpoint that returns information about number of documents, chunks and queue elements
 - Test document parsing across all supported formats
-- Include Liquibase for database schema management
 - Include Locust benchmarking for performance testing
 - Include Prometheus and Grafana for monitoring and visualization
 - Add authentication and authorization
 - Implement document metadata search
-- Add batch processing capabilities
