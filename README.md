@@ -4,7 +4,9 @@
 
 This project provides a comprehensive benchmarking suite for Oracle AI Vector Search capabilities. It combines a Flask-based vector embedding service with Oracle Database backend for storing and searching vector embeddings at scale.
 
-The benchmark uses a curated dataset of PDF documents from [Kaggle](https://www.kaggle.com/datasets/manisha717/dataset-of-pdf-files?resource=download) to test document parsing, embedding generation, and vector search performance. The application leverages vLLM for efficient vector embeddings using the `intfloat/e5-mistral-7b-instruct` model, docling for robust document parsing across multiple file formats, and Oracle Database's native vector capabilities for similarity search.
+### Technical overview
+
+The benchmark uses a curated dataset of PDF documents from [Kaggle Dataset of PDF files](https://www.kaggle.com/datasets/manisha717/dataset-of-pdf-files?resource=download) to test document parsing, embedding generation, and vector search performance. The application leverages vLLM for efficient vector embeddings using the `intfloat/e5-mistral-7b-instruct` model, docling for robust document parsing across multiple file formats, and Oracle Database's native vector capabilities for similarity search.
 
 Key features:
 
@@ -21,6 +23,7 @@ Key features:
 
 - Python 3.8+
 - Podman or Docker
+- SQLcl
 - Oracle Database 23ai or later (with Vector support)
 - Virtual environment support
 - Git
@@ -34,7 +37,38 @@ git clone https://github.com/vmleon/oracle-ai-vector-search-benchmark.git
 cd oracle-ai-vector-search-benchmark
 ```
 
-2. **Setup the environment and dataset:**
+2. **Prepare the environment:**
+
+Before starting the Oracle Database, ensure your system is ready:
+
+```bash
+# Create and activate a Python virtual environment (recommended)
+python -m venv venv
+```
+
+```bash
+# On Linux/macOS:
+source venv/bin/activate
+```
+
+```bash
+# On Windows:
+venv\Scripts\activate
+```
+
+```bash
+# Install local script dependencies
+pip install -r requirements.txt
+```
+
+```bash
+# Start Podman machine (if not already running)
+podman machine start
+```
+
+**Note:** The `requirements.txt` in the root directory contains dependencies for the local setup script (kagglehub, python-dotenv). The vector service has its own requirements file in `src/vector_maker/requirements.txt`.
+
+3. **Setup the environment and dataset:**
 
 ```bash
 python local.py setup
@@ -46,7 +80,7 @@ This will automatically:
 - Extract files to the `samples/` directory
 - Set up the required directory structure
 
-3. **Start Oracle Database:**
+4. **Start Oracle Database:**
 
 ```bash
 python local.py run
@@ -60,24 +94,24 @@ This will:
 - Generate and set a random database password
 - Create necessary database tables and indexes
 
-4. **Set up the vector embedding service:**
+5. **Set up the vector embedding service:**
 
 ```bash
-cd src
+cd src/vector_maker
 python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-5. **Start the embedding service:**
+6. **Start the embedding service:**
 
 ```bash
-gunicorn -w 1 -b 0.0.0.0:8000 vector_maker:app
+gunicorn -w 1 -b 0.0.0.0:8000 app:app
 ```
 
 The service will be available at `http://localhost:8000`
 
-6. **Cleanup (when done):**
+7. **Cleanup (when done):**
 
 ```bash
 python local.py cleanup

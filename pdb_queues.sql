@@ -21,3 +21,5 @@ begin
    dbms_aqadm.start_queue(queue_name => 'PDBADMIN.VECTOR_PENDING_CHUNK');
 end;
 /
+
+exit;

@@ -57,6 +57,8 @@ def process_document(file, include_embeddings=False):
     
     # Generate file hash
     file_hash = get_file_hash(file_content)
+
+    # TODO check if the file_hash is already in the database, if so, log the event and skip chunking and embedding creation. Return the information as processed
     
     # Create temporary file in specified directory
     os.makedirs(TEMP_DIR, exist_ok=True)
@@ -89,6 +91,8 @@ def process_document(file, include_embeddings=False):
             page_count=document_page_count,
             file_hash=file_hash
         )
+
+        logger.info(f"Document {file.filename} chunked in {len(chunks)} chunks.")
         
         # Prepare chunks with embeddings for database storage
         chunks_with_embeddings = [

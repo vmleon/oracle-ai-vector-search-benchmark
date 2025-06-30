@@ -20,7 +20,7 @@ pip install -r requirements.txt
 ### 3. Run the application
 
 ```bash
-python vector_maker.py
+gunicorn -w 1 -b 0.0.0.0:8000 app:app
 ```
 
 The application will start on `http://localhost:8000`

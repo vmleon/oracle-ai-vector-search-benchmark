@@ -1,6 +1,6 @@
 import logging
 import oracledb
-from database.connection import get_db_pool, is_db_ready
+from .connection import get_db_pool, is_db_ready
 
 logger = logging.getLogger(__name__)
 

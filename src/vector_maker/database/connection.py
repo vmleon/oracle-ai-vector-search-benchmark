@@ -26,16 +26,6 @@ def init_database():
         if 'TNS_ADMIN' in os.environ:
             logger.warning("TNS_ADMIN detected, this might cause issues with thin mode")
         
-        # First test with a simple connection to ensure we're using thin mode correctly
-        logger.info("Testing connection...")
-        test_conn = oracledb.connect(
-            user=ORACLE_USER,
-            password=ORACLE_PASSWORD,
-            dsn=ORACLE_DSN
-        )
-        test_conn.close()
-        logger.info("Test connection successful")
-        
         # Create connection pool using thin mode (no Oracle client installation required)
         _db_pool = oracledb.create_pool(
             user=ORACLE_USER,
@@ -49,16 +39,21 @@ def init_database():
         
         # Test connection and create tables
         with _db_pool.acquire() as connection:
-            # TODO make a simple select from dual to check connection pool and mark _db_ready as True
-            None
+            cursor = connection.cursor()
+            cursor.execute("SELECT 1 FROM DUAL")
+            result = cursor.fetchone()
+            cursor.close()
+            logger.info(f"Connection pool test successful: {result[0]}")
         
         _db_ready = True
         logger.info("Database connection pool initialized successfully")
         
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
+        logger.error(f"Database connection details - DSN: {ORACLE_DSN}, User: {ORACLE_USER}")
         _db_pool = None
         _db_ready = False
+        raise SystemExit(f"Database initialization failed: {e}")
 
 def get_db_pool():
     """Get the database connection pool."""
