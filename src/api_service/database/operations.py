@@ -1,5 +1,6 @@
 import logging
 import oracledb
+import array
 from .connection import get_db_pool, is_db_ready
 
 logger = logging.getLogger(__name__)
@@ -116,7 +117,7 @@ def update_chunk_embedding(document_id, chunk_index, embedding):
         connection.commit()
         logger.info(f"Updated embedding for chunk {chunk_index} of document {document_id}")
 
-def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.7):
+def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.8):
     """Search for similar chunks using vector similarity."""
     if not is_db_ready():
         raise Exception("Database not ready")
@@ -125,6 +126,23 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.7):
     with db_pool.acquire() as connection:
         cursor = connection.cursor()
         
+        # Convert query embedding to proper format for Oracle VECTOR type
+        if isinstance(query_embedding, list):
+            query_embedding_array = array.array('f', query_embedding)
+        else:
+            query_embedding_array = query_embedding
+        
+        logger.info("query_embedding")
+        logger.info(query_embedding)
+            
+        
+        logger.info("threshold")
+        logger.info(1 - similarity_threshold)
+            
+        
+        logger.info("limit")
+        logger.info(limit)
+            
         cursor.execute("""
             SELECT 
                 dc.chunk_text,
@@ -138,12 +156,14 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.7):
             ORDER BY distance
             FETCH FIRST :limit ROWS ONLY
         """, {
-            'query_embedding': query_embedding,
+            'query_embedding': query_embedding_array,
             'threshold': 1 - similarity_threshold,  # Convert similarity to distance
             'limit': limit
         })
         
         results = cursor.fetchall()
+        logger.info("results")
+        logger.info(results)
         
         return [{
             'text': row[0],

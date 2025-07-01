@@ -1,5 +1,6 @@
 import logging
 import oracledb
+import array
 from .connection import get_db_pool, is_db_ready
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,12 @@ def store_document_chunks(document_id, chunks_with_embeddings):
         
         # Insert new chunks
         for i, (chunk_text, embedding) in enumerate(chunks_with_embeddings):
+            # Convert embedding list to proper format for Oracle VECTOR type
+            if isinstance(embedding, list):
+                embedding_array = array.array('f', embedding)
+            else:
+                embedding_array = embedding
+                
             cursor.execute("""
                 INSERT INTO document_chunks (document_id, chunk_index, chunk_text, embedding, chunk_size)
                 VALUES (:doc_id, :chunk_idx, :chunk_text, :embedding, :chunk_size)
@@ -58,7 +65,7 @@ def store_document_chunks(document_id, chunks_with_embeddings):
                 'doc_id': document_id,
                 'chunk_idx': i,
                 'chunk_text': chunk_text,
-                'embedding': embedding,
+                'embedding': embedding_array,
                 'chunk_size': len(chunk_text)
             })
         
@@ -101,12 +108,18 @@ def update_chunk_embedding(document_id, chunk_index, embedding):
     with db_pool.acquire() as connection:
         cursor = connection.cursor()
         
+        # Convert embedding list to proper format for Oracle VECTOR type
+        if isinstance(embedding, list):
+            embedding_array = array.array('f', embedding)
+        else:
+            embedding_array = embedding
+        
         cursor.execute("""
             UPDATE document_chunks 
             SET embedding = :embedding 
             WHERE document_id = :doc_id AND chunk_index = :chunk_idx
         """, {
-            'embedding': embedding,
+            'embedding': embedding_array,
             'doc_id': document_id,
             'chunk_idx': chunk_index
         })
@@ -123,6 +136,12 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.7):
     with db_pool.acquire() as connection:
         cursor = connection.cursor()
         
+        # Convert query embedding to proper format for Oracle VECTOR type
+        if isinstance(query_embedding, list):
+            query_embedding_array = array.array('f', embedding)
+        else:
+            query_embedding_array = query_embedding
+            
         cursor.execute("""
             SELECT 
                 dc.chunk_text,
@@ -136,7 +155,7 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.7):
             ORDER BY distance
             FETCH FIRST :limit ROWS ONLY
         """, {
-            'query_embedding': query_embedding,
+            'query_embedding': query_embedding_array,
             'threshold': 1 - similarity_threshold,  # Convert similarity to distance
             'limit': limit
         })
