@@ -107,8 +107,7 @@ Search for similar document chunks.
 ```json
 {
   "query": "search text",
-  "limit": 10,
-  "similarity_threshold": 0.7
+  "limit": 10
 }
 ```
 

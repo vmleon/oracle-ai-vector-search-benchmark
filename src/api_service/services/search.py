@@ -5,7 +5,7 @@ from database import search_similar_chunks
 
 logger = logging.getLogger(__name__)
 
-def search_documents(query_text, limit=10, similarity_threshold=0.7):
+def search_documents(query_text, limit=10):
     """Search for similar document chunks using vector similarity."""
     
     # Get embedding from vector_maker_service
@@ -32,8 +32,7 @@ def search_documents(query_text, limit=10, similarity_threshold=0.7):
     # Search for similar chunks
     results = search_similar_chunks(
         query_embedding=query_embedding,
-        limit=limit,
-        similarity_threshold=similarity_threshold
+        limit=limit
     )
     
     return {

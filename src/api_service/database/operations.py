@@ -117,7 +117,7 @@ def update_chunk_embedding(document_id, chunk_index, embedding):
         connection.commit()
         logger.info(f"Updated embedding for chunk {chunk_index} of document {document_id}")
 
-def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.8):
+def search_similar_chunks(query_embedding, limit=10):
     """Search for similar chunks using vector similarity."""
     if not is_db_ready():
         raise Exception("Database not ready")
@@ -131,17 +131,6 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.8):
             query_embedding_array = array.array('f', query_embedding)
         else:
             query_embedding_array = query_embedding
-        
-        logger.info("query_embedding")
-        logger.info(query_embedding)
-            
-        
-        logger.info("threshold")
-        logger.info(1 - similarity_threshold)
-            
-        
-        logger.info("limit")
-        logger.info(limit)
             
         cursor.execute("""
             SELECT 
@@ -152,12 +141,10 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.8):
                 VECTOR_DISTANCE(dc.embedding, :query_embedding, COSINE) as distance
             FROM document_chunks dc
             JOIN documents d ON dc.document_id = d.id
-            WHERE VECTOR_DISTANCE(dc.embedding, :query_embedding, COSINE) < :threshold
-            ORDER BY distance
+            ORDER BY VECTOR_DISTANCE(dc.embedding, :query_embedding, COSINE)
             FETCH FIRST :limit ROWS ONLY
         """, {
             'query_embedding': query_embedding_array,
-            'threshold': 1 - similarity_threshold,  # Convert similarity to distance
             'limit': limit
         })
         
@@ -166,7 +153,7 @@ def search_similar_chunks(query_embedding, limit=10, similarity_threshold=0.8):
         logger.info(results)
         
         return [{
-            'text': row[0],
+            'text': row[0].read() if hasattr(row[0], 'read') else row[0],
             'filename': row[1],
             'title': row[2],
             'chunk_index': row[3],

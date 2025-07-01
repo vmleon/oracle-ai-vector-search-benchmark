@@ -53,13 +53,11 @@ def search_documents_endpoint():
         
         query_text = data['query']
         limit = data.get('limit', 10)
-        similarity_threshold = data.get('similarity_threshold', 0.7)
         
         # Search for similar documents
         results = search_documents(
             query_text=query_text,
-            limit=limit,
-            similarity_threshold=similarity_threshold
+            limit=limit
         )
         
         return jsonify(results)
