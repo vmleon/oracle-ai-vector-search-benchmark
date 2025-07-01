@@ -4,9 +4,10 @@
 
 - Oracle Database 23ai with AI Vector Search
 - Python 3.8+
-- GPU with sufficient VRAM (for embedding model)
 - Podman or Docker
 - SQLcl
+
+> Recommended: GPU with sufficient VRAM (for embedding model)
 
 ## Development
 

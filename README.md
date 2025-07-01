@@ -63,6 +63,8 @@ _For detailed API documentation with request/response schemas, see individual se
 
 Visit this [LOCAL Deployment](LOCAL.md) step by step guide.
 
+For the local deployment, Oracle Database FREE 23ai is used, running as a container with Podman.
+
 ### Key Features
 
 - Vector index on embeddings for fast similarity search

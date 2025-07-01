@@ -27,6 +27,16 @@ Content-Type: application/pdf
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
 
+
+### Search Documents - Basic Query
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "These estimates were converted to the percent of population exposed"
+}
+
+
 ### Upload Document with Embeddings in Response
 POST http://localhost:8000/upload?include_embeddings=true
 content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
@@ -38,14 +48,6 @@ Content-Type: application/pdf
 < ./samples/0a29925ccc5e6299e132a73325956a3abef6dd26.pdf
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
-
-### Search Documents - Basic Query
-POST http://localhost:8000/search
-content-type: application/json
-
-{
-    "query": "machine learning algorithms"
-}
 
 ### Search Documents - With Custom Parameters
 POST http://localhost:8000/search

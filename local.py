@@ -20,28 +20,7 @@ def setup():
     os.makedirs("samples", exist_ok=True)
     
     check_podman_machine_running()
-
-    # Check that there are pdf files on samples/ folder. if there are pdf files, skip kagglehub download
-    pdf_files = [f for f in os.listdir("samples") if f.lower().endswith('.pdf')]
-    if pdf_files:
-        print(f"✓ Found {len(pdf_files)} PDF files in samples/ folder, skipping download")
-        return
-
-    # using kagglehub, download "manisha717/dataset-of-pdf-files"
-    print("Downloading PDF dataset from Kaggle...")
-    path = kagglehub.dataset_download("manisha717/dataset-of-pdf-files")
     
-    # Move all files from downloaded path to flat structure in samples/
-    for root, _, files in os.walk(path):
-        for file in files:
-            source_file_path = os.path.join(root, file)
-            shutil.move(source_file_path, "samples/")
-
-    shutil.rmtree(path)
-    print("✓ PDF dataset downloaded and extracted")
-
-
-def run():
     print("Running Oracle Database as a container:")
     
     # Check that there is not already a container named ora_vector_benchmark, if exists, skip the podman run that follows.
@@ -70,15 +49,12 @@ def run():
     print("Waiting for database to be healthy...")
     wait_for_database_ready()
     print("✓ Oracle Database container started")
-    
-    # Check if .env file exists and if ORACLE_DB_PASSWORD is already defined
+
+    # Generate database password if not exists
     env_file_path = '.env'
     existing_password = os.getenv('ORACLE_DB_PASSWORD')
     
-    if existing_password:
-        password = existing_password
-        print("✓ Using existing database password from .env file")
-    else:
+    if not existing_password:
         # Generate random password and save it in .env file
         password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
         
@@ -90,6 +66,36 @@ def run():
         # Update or add the ORACLE_DB_PASSWORD using dotenv
         set_key(env_file_path, 'ORACLE_DB_PASSWORD', password)
         print("✓ Generated and saved database password to .env file")
+    else:
+        print("✓ Database password already exists in .env file")
+
+    # Check that there are pdf files on samples/ folder. if there are pdf files, skip kagglehub download
+    pdf_files = [f for f in os.listdir("samples") if f.lower().endswith('.pdf')]
+    if pdf_files:
+        print(f"✓ Found {len(pdf_files)} PDF files in samples/ folder, skipping download")
+        return
+
+    # using kagglehub, download "manisha717/dataset-of-pdf-files"
+    print("Downloading PDF dataset from Kaggle...")
+    path = kagglehub.dataset_download("manisha717/dataset-of-pdf-files")
+    
+    # Move all files from downloaded path to flat structure in samples/
+    for root, _, files in os.walk(path):
+        for file in files:
+            source_file_path = os.path.join(root, file)
+            shutil.move(source_file_path, "samples/")
+
+    shutil.rmtree(path)
+    print("✓ PDF dataset downloaded and extracted")
+
+
+def run():    
+    # Get database password from .env file
+    password = os.getenv('ORACLE_DB_PASSWORD')
+    if not password:
+        print("Error: ORACLE_DB_PASSWORD not found in .env file. Please run 'setup' first.")
+        sys.exit(1)
+    print("✓ Using database password from .env file")
     
     # Set the database password
     set_database_password(password)
@@ -167,9 +173,14 @@ def create_queues(password):
         print(f"Error: Failed to create queues: {e}")
         sys.exit(1)
 
-def wait_for_database_ready(max_wait_seconds=90, check_interval=10):
+def wait_for_database_ready(max_wait_seconds=120, check_interval=5):
     """Wait for Oracle database container to be ready, checking every interval for max_wait_seconds."""
     print(f"Checking database readiness every {check_interval} seconds (max {max_wait_seconds}s)...")
+    
+    # ORA-12514: Cannot connect to database
+    # ORA-03113: database connection closed by peer
+    # ORA-12528: TNS:listener: all appropriate instances are blocking new connections
+    # ORA-01017: invalid credential or not authorized; logon denied
     
     start_time = time.time()
     while time.time() - start_time < max_wait_seconds:
@@ -182,10 +193,10 @@ def wait_for_database_ready(max_wait_seconds=90, check_interval=10):
             
             # Try to connect to the database to check if it's ready
             result = subprocess.run([
-                "sql", f"no_user/no_password@localhost:1521/FREE"
+                "sql", "-s", f"pdbadmin/no_password@localhost:1521/FREEPDB1"
             ], capture_output=True, timeout=30)
             
-            if result.returncode == 1 and "ORA-" in str(result.stdout):
+            if result.returncode == 1 and is_pdbadmin_locked_and_ready(result.stdout):
                 elapsed = int(time.time() - start_time)
                 print(f"✓ Database is ready (took {elapsed}s)")
                 return True
@@ -198,6 +209,12 @@ def wait_for_database_ready(max_wait_seconds=90, check_interval=10):
         time.sleep(check_interval)
     
     print(f"✗ Database did not become ready within {max_wait_seconds} seconds")
+    return False
+
+def is_pdbadmin_locked_and_ready(stdout):
+    if "ORA-28000: The account is locked" in str(stdout):
+        time.sleep(5)
+        return True
     return False
 
 def check_podman_machine_running():
