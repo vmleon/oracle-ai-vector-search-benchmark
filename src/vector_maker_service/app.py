@@ -6,7 +6,7 @@ import time
 from flask import Flask
 from flask_cors import CORS
 
-from config import HOST, PORT, DEBUG, MAX_FILE_SIZE, CORS_ORIGINS
+from config import HOST, PORT, DEBUG, CORS_ORIGINS
 from database import init_database, cleanup_database, update_chunk_embedding
 from models import init_model, cleanup_model, get_model, is_model_ready
 from services import dequeue_chunk_for_embedding
@@ -22,7 +22,6 @@ _worker_thread = None
 
 # Create Flask app
 app = Flask(__name__)
-app.config['MAX_CONTENT_LENGTH'] = MAX_FILE_SIZE
 
 # Setup CORS
 CORS(app, origins=CORS_ORIGINS)

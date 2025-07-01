@@ -1,27 +1,191 @@
+# Oracle AI Vector Search Benchmark - REST API Tests
+# This file is designed for use with the REST Client extension for Visual Studio Code
+# Install: https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+
+# =============================================================================
+# API SERVICE (Port 8000) - Document Upload, Search, and Management
+# =============================================================================
+
+### API Service - Basic Health Check
+GET http://localhost:8000/health
+
+### API Service - Liveness Check
 GET http://localhost:8000/health/live
 
-###
+### API Service - Readiness Check (checks database connectivity)
 GET http://localhost:8000/health/ready
 
-###
-POST http://localhost:8000/embeddings
-content-type: application/json
-
-{
-    "texts": [
-      "Sample text for embedding generation",
-      "Another text to process"
-    ]
-}
-
-###
+### Upload Document (PDF)
 POST http://localhost:8000/upload
 content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW
-Content-Disposition: form-data; name="file"; filename="0a29925ccc5e6299e132a73325956a3abef6dd26.pdf"
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
 Content-Type: application/pdf
 
 < ./samples/0a29925ccc5e6299e132a73325956a3abef6dd26.pdf
 
 ------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Upload Document with Embeddings in Response
+POST http://localhost:8000/upload?include_embeddings=true
+content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./samples/0a29925ccc5e6299e132a73325956a3abef6dd26.pdf
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Search Documents - Basic Query
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "machine learning algorithms"
+}
+
+### Search Documents - With Custom Parameters
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "neural networks artificial intelligence",
+    "limit": 5,
+    "similarity_threshold": 0.8
+}
+
+### Search Documents - Technical Terms
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "deep learning convolutional networks",
+    "limit": 3,
+    "similarity_threshold": 0.75
+}
+
+# =============================================================================
+# VECTOR MAKER SERVICE (Port 8001) - Embedding Generation
+# =============================================================================
+
+### Vector Maker Service - Basic Health Check
+GET http://localhost:8001/health
+
+### Vector Maker Service - Liveness Check
+GET http://localhost:8001/health/live
+
+### Vector Maker Service - Readiness Check (checks model and database)
+GET http://localhost:8001/health/ready
+
+### Generate Embeddings - Single Text
+POST http://localhost:8001/embeddings
+content-type: application/json
+
+{
+    "texts": [
+        "This is a sample text for embedding generation"
+    ]
+}
+
+### Generate Embeddings - Multiple Texts
+POST http://localhost:8001/embeddings
+content-type: application/json
+
+{
+    "texts": [
+        "Machine learning is a subset of artificial intelligence",
+        "Deep learning uses neural networks with multiple layers",
+        "Natural language processing helps computers understand text"
+    ]
+}
+
+### Generate Embeddings - Technical Documentation
+POST http://localhost:8001/embeddings
+content-type: application/json
+
+{
+    "texts": [
+        "Oracle Database 23ai introduces advanced vector search capabilities",
+        "Vector embeddings enable semantic similarity search across documents",
+        "COSINE distance function provides efficient similarity calculations"
+    ]
+}
+
+# =============================================================================
+# WORKFLOW EXAMPLES - Complete Document Processing Pipeline
+# =============================================================================
+
+### Step 1: Check if both services are ready
+GET http://localhost:8000/health/ready
+
+###
+GET http://localhost:8001/health/ready
+
+### Step 2: Upload a document (this will automatically chunk and queue for embedding)
+POST http://localhost:8000/upload
+content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="research_paper.pdf"
+Content-Type: application/pdf
+
+< ./samples/0a29925ccc5e6299e132a73325956a3abef6dd26.pdf
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Step 3: Wait for background processing, then search for content
+# Note: Allow some time for the vector_maker_service to process the chunks
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "main findings and conclusions",
+    "limit": 10,
+    "similarity_threshold": 0.7
+}
+
+# =============================================================================
+# TROUBLESHOOTING AND TESTING
+# =============================================================================
+
+### Test Vector Service Direct Embedding (for debugging)
+POST http://localhost:8001/embeddings
+content-type: application/json
+
+{
+    "texts": ["test embedding generation"]
+}
+
+### Test Search with Simple Query (should work after documents are processed)
+POST http://localhost:8000/search
+content-type: application/json
+
+{
+    "query": "test",
+    "limit": 1,
+    "similarity_threshold": 0.5
+}
+
+# =============================================================================
+# ENVIRONMENT VARIABLES (for reference)
+# =============================================================================
+# API_SERVICE:
+# - API_HOST=0.0.0.0
+# - API_PORT=8000
+# - VECTOR_SERVICE_URL=http://localhost:8001
+#
+# VECTOR_MAKER_SERVICE:
+# - VECTOR_HOST=0.0.0.0
+# - VECTOR_PORT=8001
+# - VECTOR_MODEL=intfloat/e5-mistral-7b-instruct
+#
+# SHARED:
+# - ORACLE_USER=pdbadmin
+# - ORACLE_PASSWORD=<your_password>
+# - ORACLE_HOST=localhost
+# - ORACLE_PORT=1521
+# - ORACLE_SERVICE_NAME=FREEPDB1
+# =============================================================================

@@ -5,20 +5,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Flask Configuration
-HOST = os.getenv('VECTOR_HOST', '0.0.0.0')
-PORT = int(os.getenv('VECTOR_PORT', '8000'))
-DEBUG = os.getenv('VECTOR_DEBUG', 'True').lower() in ('true', '1', 'yes')
-MAX_FILE_SIZE = int(os.getenv('VECTOR_MAX_FILE_SIZE', '16777216'))  # 16MB default
-TEMP_DIR = os.getenv('VECTOR_TEMP_DIR', tempfile.gettempdir())
-CORS_ORIGINS = os.getenv('VECTOR_CORS_ORIGINS', '*').split(',')
+HOST = os.getenv('API_HOST', '0.0.0.0')
+PORT = int(os.getenv('API_PORT', '8000'))
+DEBUG = os.getenv('API_DEBUG', 'True').lower() in ('true', '1', 'yes')
+MAX_FILE_SIZE = int(os.getenv('API_MAX_FILE_SIZE', '16777216'))  # 16MB default
+TEMP_DIR = os.getenv('API_TEMP_DIR', tempfile.gettempdir())
+CORS_ORIGINS = os.getenv('API_CORS_ORIGINS', '*').split(',')
 
-# Model Configuration
-MODEL_NAME = os.getenv('VECTOR_MODEL', 'intfloat/e5-mistral-7b-instruct')
-ENFORCE_EAGER = os.getenv('VECTOR_ENFORCE_EAGER', 'True').lower() in ('true', '1', 'yes')
+# Document Storage Configuration
+DOCUMENTS_STORAGE_PATH = os.getenv('DOCUMENTS_STORAGE_PATH', os.path.join(os.path.dirname(os.path.dirname(__file__)), 'shared', 'documents'))
 
-# Document Processing Configuration
-CHUNK_SIZE = int(os.getenv('VECTOR_CHUNK_SIZE', '512'))
-CHUNK_OVERLAP = int(os.getenv('VECTOR_CHUNK_OVERLAP', '50'))
+# Legacy Document Processing Configuration (for reference)
+CHUNK_SIZE = int(os.getenv('API_CHUNK_SIZE', '512'))
+CHUNK_OVERLAP = int(os.getenv('API_CHUNK_OVERLAP', '50'))
 
 # Oracle Database Configuration
 ORACLE_USER = os.getenv('ORACLE_USER', 'SYSTEM')

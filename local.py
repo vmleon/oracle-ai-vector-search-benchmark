@@ -71,20 +71,25 @@ def run():
     wait_for_database_ready()
     print("✓ Oracle Database container started")
     
-    # Generate random password and save it in .env file
-    password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
-    
-    # Use dotenv to properly update the ORACLE_DB_PASSWORD in .env file
+    # Check if .env file exists and if ORACLE_DB_PASSWORD is already defined
     env_file_path = '.env'
+    existing_password = os.getenv('ORACLE_DB_PASSWORD')
     
-    # Create .env file if it doesn't exist
-    if not os.path.exists(env_file_path):
-        with open(env_file_path, 'w') as f:
-            f.write("# Oracle Database Password\n")
-    
-    # Update or add the ORACLE_DB_PASSWORD using dotenv
-    set_key(env_file_path, 'ORACLE_DB_PASSWORD', password)
-    print("✓ Generated and saved database password to .env file")
+    if existing_password:
+        password = existing_password
+        print("✓ Using existing database password from .env file")
+    else:
+        # Generate random password and save it in .env file
+        password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
+        
+        # Create .env file if it doesn't exist
+        if not os.path.exists(env_file_path):
+            with open(env_file_path, 'w') as f:
+                f.write("# Oracle Database Password\n")
+        
+        # Update or add the ORACLE_DB_PASSWORD using dotenv
+        set_key(env_file_path, 'ORACLE_DB_PASSWORD', password)
+        print("✓ Generated and saved database password to .env file")
     
     # Set the database password
     set_database_password(password)
@@ -95,21 +100,23 @@ def run():
     # Create the queues
     create_queues(password)
     
-    # TODO from src/vector_maker/ run liquibase update
-    # grand permissions to database user
-    src_dir = os.path.abspath("src/vector_maker")
+    # Run liquibase update from src/liquibase/
+    liquibase_dir = os.path.abspath("src/liquibase")
     try:
         subprocess.run([
                 "liquibase", f"--password={password}", "update"
-            ], cwd=src_dir, check=True)
-        print("✓ Database user grant permissions successfully")
+            ], cwd=liquibase_dir, check=True)
+        print("✓ Database schema updated successfully")
     except subprocess.CalledProcessError as e:
-        print(f"Error: Failed to grand user permissions: {e}")
+        print(f"Error: Failed to update database schema: {e}")
         sys.exit(1)
 
     print("\nDatabase setup complete!")
-    print("Change directory to src/vector_maker and run the application with this command:")
-    print("gunicorn -w 1 --timeout 300 --graceful-timeout 300 -b 0.0.0.0:8000 app:app")
+    print("\nTo start the services:")
+    print("1. API Service (port 8000):")
+    print("   cd src/api_service && source venv/bin/activate && gunicorn app:app -c gunicorn.conf.py")
+    print("2. Vector Maker Service (port 8001):")
+    print("   cd src/vector_maker_service && source venv/bin/activate && gunicorn app:app -c gunicorn.conf.py")
 
 def cleanup():
     # Stop and remove container ora_vector_benchmark using podman

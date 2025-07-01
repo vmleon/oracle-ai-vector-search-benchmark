@@ -1,0 +1,42 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-add-document-processing-columns
+      author: vector-benchmark
+      comment: Add file_path, processing_status, chunks_count, and processed_time columns to documents table
+      changes:
+        - addColumn:
+            tableName: documents
+            columns:
+              - column:
+                  name: file_path
+                  type: VARCHAR2(500)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: processing_status
+                  type: VARCHAR2(20)
+                  defaultValue: 'pending'
+                  constraints:
+                    nullable: false
+              - column:
+                  name: chunks_count
+                  type: NUMBER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: processed_time
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropColumn:
+            tableName: documents
+            columns:
+              - column:
+                  name: file_path
+              - column:
+                  name: processing_status
+              - column:
+                  name: chunks_count
+              - column:
+                  name: processed_time

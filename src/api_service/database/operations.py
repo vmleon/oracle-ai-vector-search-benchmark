@@ -4,7 +4,7 @@ from .connection import get_db_pool, is_db_ready
 
 logger = logging.getLogger(__name__)
 
-def store_document(filename, title, page_count, file_hash):
+def store_document(filename, title, page_count, file_hash, file_path=None, processing_status='pending'):
     """Store document metadata and return document ID."""
     if not is_db_ready():
         raise Exception("Database not ready")
@@ -20,20 +20,22 @@ def store_document(filename, title, page_count, file_hash):
         if result:
             return result[0]  # Return existing document ID
         
-        # Insert new document
+        # Insert new document with file_path and processing_status
         cursor.execute("""
-            INSERT INTO documents (filename, title, page_count, file_hash)
-            VALUES (:filename, :title, :page_count, :file_hash)
+            INSERT INTO documents (filename, title, page_count, file_hash, file_path, processing_status)
+            VALUES (:filename, :title, :page_count, :file_hash, :file_path, :processing_status)
             RETURNING id INTO :doc_id
         """, {
             'filename': filename,
             'title': title,
             'page_count': page_count,
             'file_hash': file_hash,
+            'file_path': file_path,
+            'processing_status': processing_status,
             'doc_id': cursor.var(oracledb.NUMBER)
         })
         
-        doc_id = cursor.getvar('doc_id').getvalue()[0]
+        doc_id = cursor.bindvars['doc_id'].getvalue()[0]
         connection.commit()
         return doc_id
 
