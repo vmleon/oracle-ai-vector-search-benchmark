@@ -6,16 +6,24 @@ A microservices architecture for document processing, embedding generation, and 
 
 ![Architecture Diagram](./docs/architecture.drawio.png)
 
-The system is split into two independent services:
+The system is split into three independent services:
 
 ### 1. API Service (`src/api_service/`)
 
-- **Purpose**: Document upload, processing (chunking), and search
+- **Purpose**: Document upload and search
 - **Port**: 8000 (default)
 - **Endpoints**: `/upload`, `/search`, `/health`
-- **Dependencies**: Flask, Docling, Oracle DB
+- **Dependencies**: Flask, Oracle DB
 
-### 2. Vector Maker Service (`src/vector_maker_service/`)
+### 2. Chunker Service (`src/chunker_service/`)
+
+- **Purpose**: Document processing and text chunking
+- **Port**: 8002 (default)
+- **Endpoints**: `/health`, `/ready`
+- **Dependencies**: Flask, Docling, Oracle DB
+- **Features**: Background worker for queue processing, lightweight Docling configuration
+
+### 3. Vector Maker Service (`src/vector_maker_service/`)
 
 - **Purpose**: Embedding generation and queue processing
 - **Port**: 8001 (default)
@@ -25,10 +33,11 @@ The system is split into two independent services:
 
 ## System Flow
 
-1. **Document Upload** → API Service processes and chunks documents
-2. **Queue Enqueue** → Chunks are queued for embedding generation
-3. **Background Processing** → Vector Maker Service generates embeddings
-4. **Search** → API Service searches using generated embeddings
+1. **Document Upload** → API Service stores documents and queues them for processing
+2. **Document Processing** → Chunker Service processes documents from queue and creates text chunks
+3. **Chunk Queuing** → Chunker Service queues chunks for embedding generation
+4. **Embedding Generation** → Vector Maker Service generates embeddings for queued chunks
+5. **Search** → API Service searches using generated embeddings
 
 ## Prerequisites
 
@@ -70,6 +79,15 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+**Chunker Service:**
+
+```bash
+cd src/chunker_service
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+```
+
 **Vector Maker Service:**
 
 ```bash
@@ -81,10 +99,10 @@ pip install -r requirements.txt
 
 ### 3. Configure Environment
 
-Create `.env` files in both service directories:
+Create `.env` files in all service directories:
 
 ```bash
-# Database Configuration (both services)
+# Database Configuration (all services)
 ORACLE_USER=SYSTEM
 ORACLE_PASSWORD=your_password
 ORACLE_HOST=localhost
@@ -95,8 +113,13 @@ ORACLE_SERVICE_NAME=FREEPDB1
 API_HOST=0.0.0.0
 API_PORT=8000
 API_MAX_FILE_SIZE=16777216
-API_CHUNK_SIZE=512
-API_CHUNK_OVERLAP=50
+
+# Chunker Service specific (.env in src/chunker_service/)
+CHUNKER_HOST=0.0.0.0
+CHUNKER_PORT=8002
+CHUNKER_CHUNK_SIZE=512
+CHUNKER_CHUNK_OVERLAP=50
+DOCUMENTS_STORAGE_PATH=../shared/documents
 
 # Vector Maker Service specific (.env in src/vector_maker_service/)
 VECTOR_HOST=0.0.0.0
@@ -111,6 +134,15 @@ VECTOR_ENFORCE_EAGER=True
 
 ```bash
 cd src/vector_maker_service
+source venv/bin/activate
+python app.py
+# or with gunicorn (recommended): gunicorn app:app -c gunicorn.conf.py
+```
+
+**Start Chunker Service:**
+
+```bash
+cd src/chunker_service
 source venv/bin/activate
 python app.py
 # or with gunicorn (recommended): gunicorn app:app -c gunicorn.conf.py
@@ -155,91 +187,20 @@ curl -X POST -H "Content-Type: application/json" \
 # API Service health
 curl http://localhost:8000/health
 
+# Chunker Service health
+curl http://localhost:8002/health
+
 # Vector Maker Service health
 curl http://localhost:8001/health
 ```
 
-## API Reference
+## API Endpoints
 
-### API Service Endpoints
+- **API Service**: `/upload` (POST), `/search` (POST), `/health` (GET)
+- **Vector Maker Service**: `/embeddings` (POST), `/health` (GET)  
+- **Chunker Service**: `/health` (GET), `/ready` (GET)
 
-#### POST /upload
-
-Upload and process documents with automatic chunking and queuing.
-
-**Response:**
-
-```json
-{
-  "document_id": 123,
-  "filename": "document.pdf",
-  "title": "Document Title",
-  "page_count": 10,
-  "chunks_count": 25,
-  "file_hash": "sha256_hash",
-  "message": "Document processed and queued for embedding generation"
-}
-```
-
-#### POST /search
-
-Vector similarity search across processed documents.
-
-**Request:**
-
-```json
-{
-  "query": "search text",
-  "limit": 10,
-  "similarity_threshold": 0.7
-}
-```
-
-**Response:**
-
-```json
-{
-  "query": "search text",
-  "results_count": 3,
-  "results": [
-    {
-      "text": "matching chunk text...",
-      "filename": "document.pdf",
-      "title": "Document Title",
-      "chunk_index": 2,
-      "similarity": 0.85
-    }
-  ]
-}
-```
-
-### Vector Maker Service Endpoints
-
-#### POST /embeddings
-
-Generate embeddings for text arrays.
-
-**Request:**
-
-```json
-{
-  "texts": ["text 1", "text 2"]
-}
-```
-
-**Response:**
-
-```json
-{
-  "embeddings": [
-    {
-      "text": "text 1",
-      "embedding": [0.1, 0.2, 0.3, ...],
-      "size": 4096
-    }
-  ]
-}
-```
+*For detailed API documentation with request/response schemas, see individual service READMEs.*
 
 ## Database Schema
 
@@ -247,7 +208,11 @@ Generate embeddings for text arrays.
 
 - **documents**: Document metadata and file information
 - **document_chunks**: Text chunks with vector embeddings
-- **AQ$\_JMS_VECTOR_PENDING_CHUNK**: Oracle Advanced Queue for async processing
+
+### Oracle Advanced Queues
+
+- **VECTOR_PENDING_DOCUMENT**: Queue for documents awaiting chunking (processed by Chunker Service)
+- **VECTOR_PENDING_CHUNK**: Queue for chunks awaiting embedding generation (processed by Vector Maker Service)
 
 ### Key Features
 
@@ -259,43 +224,35 @@ Generate embeddings for text arrays.
 
 ## Supported File Types
 
-Via Docling document processing:
-
-- PDF files
-- Word documents (.docx)
-- PowerPoint presentations (.pptx)
-- HTML files
-- Text files (.txt)
-- Markdown files (.md)
+Multiple formats supported via Docling: PDF, DOCX, PPTX, HTML, TXT, MD
 
 ## Production Deployment
 
 ### Resource Requirements
 
 - **API Service**: CPU-optimized, can scale horizontally
+- **Chunker Service**: CPU-optimized, moderate memory for document processing
 - **Vector Maker Service**: GPU with 14GB+ VRAM for embedding model
 - **Database**: Oracle Database 23ai with sufficient storage for vectors
 
 ### Deployment Commands
 
-**API Service with Gunicorn:**
+**API Service:**
 
 ```bash
-# Using configuration file (recommended)
 gunicorn app:app -c gunicorn.conf.py
-
-# Or manual settings
-gunicorn app:app -b 0.0.0.0:8000 -w 2 --timeout 300 --max-requests 100
 ```
 
-**Vector Maker Service with Gunicorn:**
+**Chunker Service:**
 
 ```bash
-# Using configuration file (recommended)  
 gunicorn app:app -c gunicorn.conf.py
+```
 
-# Or manual settings
-gunicorn app:app -b 0.0.0.0:8001 -w 1 --timeout 600 --max-requests 50
+**Vector Maker Service:**
+
+```bash
+gunicorn app:app -c gunicorn.conf.py
 ```
 
 ### Monitoring
@@ -305,14 +262,12 @@ gunicorn app:app -b 0.0.0.0:8001 -w 1 --timeout 600 --max-requests 50
 - Database connection pool monitoring
 - Queue depth monitoring for processing bottlenecks
 
-## Performance Considerations
+## Performance Notes
 
-- **API Service**: Stateless, horizontally scalable
-- **Vector Maker Service**: Single worker recommended for GPU usage
-- **Database**: Use vector indexes for optimal search performance
-- **Queue**: Monitor processing rate to avoid backlogs
-- **Gunicorn Configuration**: Use provided `gunicorn.conf.py` files for optimized production settings
-- **Memory Management**: Configuration files include automatic worker recycling to prevent memory leaks
+- **API Service**: Horizontally scalable
+- **Chunker/Vector Services**: Single worker recommended
+- **Database**: Vector indexes for fast search
+- Use provided `gunicorn.conf.py` for production settings
 
 ## Development
 
@@ -320,29 +275,18 @@ gunicorn app:app -b 0.0.0.0:8001 -w 1 --timeout 600 --max-requests 50
 
 ```
 src/
-├── api_service/          # Document upload & search service
-│   ├── api/              # Flask routes
-│   ├── database/         # Database operations
-│   ├── services/         # Business logic
-│   └── requirements.txt  # Service dependencies
-├── vector_maker_service/ # Embedding generation service
-│   ├── api/              # Flask routes
-│   ├── database/         # Database operations
-│   ├── models/           # ML model management
-│   ├── services/         # Business logic
-│   └── requirements.txt  # Service dependencies
-└── liquibase/            # Database schema management
-    ├── changelog/        # Database change scripts
-    └── liquibase.properties
+├── api_service/          # Document upload & search
+├── chunker_service/      # Document processing & chunking  
+├── vector_maker_service/ # Embedding generation
+├── shared/documents/     # Document storage
+└── liquibase/            # Database schema
 ```
 
-### Clean Code Principles
+### Architecture Principles
 
-- Independent, deployable services
-- Minimal dependencies per service
-- Clear separation of concerns
-- Comprehensive error handling
-- Detailed logging and monitoring
+- Microservices with clear separation of concerns
+- Independent deployment and scaling
+- Queue-based async processing
 
 ## Cleanup
 
@@ -356,36 +300,11 @@ This stops the Oracle Database container and cleans up sample files.
 
 ## Contributing
 
-1. Follow clean, simple code principles
-2. Maintain service independence
-3. Add tests for new functionality
-4. Update documentation for changes
-5. Ensure both services remain independently deployable
+Maintain service independence, add tests, and update documentation for changes.
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Model Loading**: Vector Maker Service requires time to load embedding model
-2. **GPU Memory**: Ensure sufficient VRAM (14GB+) for embedding model
-3. **Database Connection**: Verify Oracle credentials and connectivity
-4. **Queue Processing**: Check Oracle AQ configuration and permissions
-5. **Port Conflicts**: Ensure ports 8000 and 8001 are available
-
-### Useful Commands
-
-```bash
-# Check service health
-curl http://localhost:8000/health
-curl http://localhost:8001/health
-
-# View service logs
-tail -f api_service.log
-tail -f vector_maker_service.log
-
-# Check database connectivity
-sqlcl SYSTEM/password@localhost:1521/FREEPDB1
-```
+Common issues: GPU memory (14GB+ required), database connectivity, port conflicts (8000/8001/8002). Check service health endpoints and logs for debugging.
 
 ## License
 
