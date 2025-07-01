@@ -122,7 +122,6 @@ def cleanup():
     # Stop and remove container ora_vector_benchmark using podman
     try:
         subprocess.run(["podman", "stop", "ora_vector_benchmark"], check=False)
-        subprocess.run(["podman", "rm", "ora_vector_benchmark"], check=False)
         print("✓ Container stopped and removed")
     except Exception as e:
         print(f"Warning: Error cleaning up container: {e}")
@@ -133,6 +132,8 @@ def cleanup():
         shutil.rmtree("db_data")
     if os.path.exists("temp"):
         shutil.rmtree("temp")
+    if os.path.exists("src/shared"):
+        shutil.rmtree("src/shared")
 
 def set_database_password(password):
     try:
