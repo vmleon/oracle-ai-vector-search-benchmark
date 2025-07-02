@@ -159,3 +159,74 @@ def search_similar_chunks(query_embedding, limit=10):
             'chunk_index': row[3],
             'similarity': 1 - row[4]  # Convert distance back to similarity
         } for row in results]
+
+def get_document_counts_by_status():
+    """Get document counts grouped by processing status."""
+    if not is_db_ready():
+        raise Exception("Database not ready")
+    
+    db_pool = get_db_pool()
+    with db_pool.acquire() as connection:
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                processing_status,
+                COUNT(*) as count
+            FROM documents
+            GROUP BY processing_status
+        """)
+        
+        results = cursor.fetchall()
+        
+        # Convert to dictionary with status as key and count as value
+        status_counts = {row[0]: row[1] for row in results}
+        
+        # Calculate total
+        total = sum(status_counts.values())
+        
+        return {
+            'total': total,
+            'by_status': status_counts
+        }
+
+def get_chunks_by_embedding_status():
+    """Get chunk counts by embedding status (with/without embeddings)."""
+    if not is_db_ready():
+        raise Exception("Database not ready")
+    
+    db_pool = get_db_pool()
+    with db_pool.acquire() as connection:
+        cursor = connection.cursor()
+        
+        cursor.execute("""
+            SELECT 
+                COUNT(*) as total_chunks,
+                SUM(CASE WHEN embedding IS NOT NULL THEN 1 ELSE 0 END) as chunks_with_embedding,
+                SUM(CASE WHEN embedding IS NULL THEN 1 ELSE 0 END) as chunks_without_embedding
+            FROM document_chunks
+        """)
+        
+        result = cursor.fetchone()
+        
+        if result:
+            total_chunks = result[0]
+            with_embedding = result[1] 
+            without_embedding = result[2]
+            
+            # Calculate embedding completion rate
+            completion_rate = (with_embedding / total_chunks * 100) if total_chunks > 0 else 0
+            
+            return {
+                'total': total_chunks,
+                'with_embedding': with_embedding,
+                'without_embedding': without_embedding,
+                'embedding_completion_rate': round(completion_rate, 1)
+            }
+        else:
+            return {
+                'total': 0,
+                'with_embedding': 0,
+                'without_embedding': 0,
+                'embedding_completion_rate': 0
+            }

@@ -15,6 +15,9 @@ GET http://localhost:8000/health/live
 ### API Service - Readiness Check (checks database connectivity)
 GET http://localhost:8000/health/ready
 
+### API Service - System Status (queue depths, document and chunk counts)
+GET http://localhost:8000/status
+
 ### Upload Document (PDF)
 POST http://localhost:8000/upload
 content-type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW

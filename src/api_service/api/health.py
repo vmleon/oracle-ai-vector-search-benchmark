@@ -1,6 +1,9 @@
 import os
+from datetime import datetime
 from flask import Blueprint, jsonify
 from database import get_db_pool, is_db_ready
+from database.operations import get_document_counts_by_status, get_chunks_by_embedding_status
+from services.queue import get_all_queue_depths
 
 health_bp = Blueprint('health', __name__)
 
@@ -54,3 +57,34 @@ def readiness_check():
         return jsonify(health_status), 503
     
     return jsonify(health_status), 200
+
+@health_bp.route('/status', methods=['GET']) 
+def status_check():
+    """System status with queue depths, document and chunk counts"""
+    try:
+        # Get current timestamp
+        timestamp = datetime.utcnow().isoformat() + 'Z'
+        
+        # Get queue depths
+        queue_depths = get_all_queue_depths()
+        
+        # Get document counts
+        document_stats = get_document_counts_by_status()
+        
+        # Get chunk counts
+        chunk_stats = get_chunks_by_embedding_status()
+        
+        status_response = {
+            'timestamp': timestamp,
+            'queues': queue_depths,
+            'documents': document_stats,
+            'chunks': chunk_stats
+        }
+        
+        return jsonify(status_response), 200
+        
+    except Exception as e:
+        return jsonify({
+            'error': f'Failed to get status: {str(e)}',
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        }), 500
