@@ -8,14 +8,13 @@ import subprocess
 import time
 import secrets
 import string
-from pathlib import Path
 from dotenv import load_dotenv, set_key
 
 # Load existing environment variables from .env file
 load_dotenv()
 
 def setup():
-    os.makedirs("temp", exist_ok=True)
+    # Create necessary directories
     os.makedirs("db_data", exist_ok=True)
     os.makedirs("samples", exist_ok=True)
     
@@ -68,33 +67,26 @@ def setup():
         print("✓ Generated and saved database password to .env file")
     else:
         print("✓ Database password already exists in .env file")
+        password = existing_password
 
     # Check that there are pdf files on samples/ folder. if there are pdf files, skip kagglehub download
     pdf_files = [f for f in os.listdir("samples") if f.lower().endswith('.pdf')]
     if pdf_files:
         print(f"✓ Found {len(pdf_files)} PDF files in samples/ folder, skipping download")
-        return
+    else:
+        # using kagglehub, download "manisha717/dataset-of-pdf-files"
+        print("Downloading PDF dataset from Kaggle...")
+        path = kagglehub.dataset_download("manisha717/dataset-of-pdf-files")
+        
+        # Move all files from downloaded path to flat structure in samples/
+        for root, _, files in os.walk(path):
+            for file in files:
+                source_file_path = os.path.join(root, file)
+                shutil.move(source_file_path, "samples/")
 
-    # using kagglehub, download "manisha717/dataset-of-pdf-files"
-    print("Downloading PDF dataset from Kaggle...")
-    path = kagglehub.dataset_download("manisha717/dataset-of-pdf-files")
-    
-    # Move all files from downloaded path to flat structure in samples/
-    for root, _, files in os.walk(path):
-        for file in files:
-            source_file_path = os.path.join(root, file)
-            shutil.move(source_file_path, "samples/")
+        shutil.rmtree(path)
+        print("✓ PDF dataset downloaded and extracted")
 
-    shutil.rmtree(path)
-    print("✓ PDF dataset downloaded and extracted")
-
-
-def run():    
-    # Get database password from .env file
-    password = os.getenv('ORACLE_DB_PASSWORD')
-    if not password:
-        print("Error: ORACLE_DB_PASSWORD not found in .env file. Please run 'setup' first.")
-        sys.exit(1)
     print("✓ Using database password from .env file")
     
     # Set the database password
@@ -136,8 +128,6 @@ def cleanup():
         shutil.rmtree("samples")
     if os.path.exists("db_data"):
         shutil.rmtree("db_data")
-    if os.path.exists("temp"):
-        shutil.rmtree("temp")
     if os.path.exists("src/shared"):
         shutil.rmtree("src/shared")
 
@@ -173,7 +163,7 @@ def create_queues(password):
         print(f"Error: Failed to create queues: {e}")
         sys.exit(1)
 
-def wait_for_database_ready(max_wait_seconds=120, check_interval=5):
+def wait_for_database_ready(max_wait_seconds=120, check_interval=20):
     """Wait for Oracle database container to be ready, checking every interval for max_wait_seconds."""
     print(f"Checking database readiness every {check_interval} seconds (max {max_wait_seconds}s)...")
     
@@ -236,16 +226,14 @@ def is_oracle_database_container_created():
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python local.py [setup|run|cleanup]")
+        print("Usage: python local.py [setup|cleanup]")
         sys.exit(1)
     
     task = sys.argv[1]
     if task == "setup":
         setup()
-    elif task == "run":
-        run()
     elif task == "cleanup":
         cleanup()
     else:
-        print("Unknown task. Use: setup, run, or cleanup")
+        print("Unknown task. Use: setup or cleanup")
         sys.exit(1)

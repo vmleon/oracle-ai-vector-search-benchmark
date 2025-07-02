@@ -213,6 +213,5 @@ terraform.rc
 .$*.drawio.bkp
 samples/
 db_data/
-temp/
 src/shared/
 claude.md

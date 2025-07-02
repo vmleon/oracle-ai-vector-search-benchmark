@@ -1,18 +1,17 @@
 # API Service
 
-The API Service handles document upload, processing, and search functionality. It processes documents, chunks them, stores them in the database, and enqueues chunks for embedding generation.
+The API Service handles document upload and search functionality. It stores documents and enqueues them for processing by the Chunker Service.
 
 ## Features
 
-- Document upload and processing (PDF, DOCX, TXT, etc.)
+- Document upload and storage (PDF, DOCX, TXT, etc.)
 - Document search using vector similarity
-- Automatic chunking and queuing for embedding generation
+- Queuing documents for chunking by Chunker Service
 - Health checks
 
 ## Dependencies
 
 - Flask for web framework
-- Docling for document processing
 - Oracle Database for storage
 - Oracle Advanced Queues for async processing
 
@@ -26,12 +25,7 @@ API_HOST=0.0.0.0
 API_PORT=8000
 API_DEBUG=True
 API_MAX_FILE_SIZE=16777216  # 16MB
-API_TEMP_DIR=/tmp
 API_CORS_ORIGINS=*
-
-# Document Processing
-API_CHUNK_SIZE=512
-API_CHUNK_OVERLAP=50
 
 # Oracle Database
 ORACLE_USER=SYSTEM
@@ -135,13 +129,14 @@ Health check endpoint.
 
 The API Service is designed to be stateless and scalable:
 
-1. **Document Upload**: Processes documents and stores chunks without embeddings
-2. **Queue Integration**: Enqueues chunks for async embedding generation
-3. **Search**: Searches through embedded chunks (requires vector_maker_service to have processed them)
-4. **Database**: Stores document metadata and chunks
+1. **Document Upload**: Stores documents and enqueues them for processing by Chunker Service
+2. **Queue Integration**: Enqueues documents for chunking and chunks for embedding generation
+3. **Search**: Searches through embedded chunks (requires chunker_service and vector_maker_service to have processed them)
+4. **Database**: Stores document metadata
 
 ## Notes
 
-- Documents are chunked immediately but embeddings are generated asynchronously
-- Search will only return results for documents that have been processed by the vector_maker_service
-- The service is designed to work in conjunction with the vector_maker_service
+- Documents are queued for processing by the Chunker Service, which handles chunking
+- Embeddings are generated asynchronously by the Vector Maker Service
+- Search will only return results for documents that have been processed by both the chunker_service and vector_maker_service
+- The service is designed to work in conjunction with the chunker_service and vector_maker_service

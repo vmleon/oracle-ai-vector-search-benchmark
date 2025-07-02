@@ -44,10 +44,9 @@ pip install -r requirements.txt
 
 # Setup dataset and database
 python local.py setup
-python local.py run
 ```
 
-This will download the dataset, start Oracle Database, and create required tables and queues.
+This will create directories, download the dataset, start Oracle Database, configure database settings, and create required tables and queues - providing a complete environment setup.
 
 ### 2. Install Service Dependencies
 

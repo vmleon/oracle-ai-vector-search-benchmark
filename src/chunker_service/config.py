@@ -1,5 +1,4 @@
 import os
-import tempfile
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -16,7 +15,6 @@ CHUNK_OVERLAP = int(os.getenv('CHUNKER_CHUNK_OVERLAP', '50'))
 
 # File Storage Configuration
 DOCUMENTS_STORAGE_PATH = os.getenv('DOCUMENTS_STORAGE_PATH', './documents')
-TEMP_DIR = os.getenv('CHUNKER_TEMP_DIR', tempfile.gettempdir())
 
 # Oracle Database Configuration
 ORACLE_USER = os.getenv('ORACLE_USER', 'SYSTEM')

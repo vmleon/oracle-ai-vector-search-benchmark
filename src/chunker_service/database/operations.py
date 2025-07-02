@@ -35,33 +35,6 @@ def update_document_with_chunks(document_id, chunks_count, title=None, page_coun
         connection.commit()
         logger.info(f"Updated document {document_id} with {chunks_count} chunks")
 
-def store_document_chunks(document_id, chunks_with_embeddings):
-    """Store document chunks with their embeddings."""
-    if not is_db_ready():
-        raise Exception("Database not ready")
-    
-    db_pool = get_db_pool()
-    with db_pool.acquire() as connection:
-        cursor = connection.cursor()
-        
-        # Clear existing chunks for this document
-        cursor.execute("DELETE FROM document_chunks WHERE document_id = :doc_id", [document_id])
-        
-        # Insert new chunks
-        for i, (chunk_text, embedding) in enumerate(chunks_with_embeddings):
-            cursor.execute("""
-                INSERT INTO document_chunks (document_id, chunk_index, chunk_text, embedding, chunk_size)
-                VALUES (:doc_id, :chunk_idx, :chunk_text, :embedding, :chunk_size)
-            """, {
-                'doc_id': document_id,
-                'chunk_idx': i,
-                'chunk_text': chunk_text,
-                'embedding': embedding,
-                'chunk_size': len(chunk_text)
-            })
-        
-        connection.commit()
-        logger.info(f"Stored {len(chunks_with_embeddings)} chunks for document {document_id}")
 
 def store_document_chunks_without_embeddings(document_id, chunks):
     """Store document chunks without embeddings."""
