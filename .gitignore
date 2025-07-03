@@ -214,4 +214,6 @@ terraform.rc
 samples/
 db_data/
 src/shared/
+**/reports/*
 claude.md
+.DS_Store

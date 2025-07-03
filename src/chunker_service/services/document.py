@@ -54,6 +54,11 @@ def chunk_text(text, chunk_size=None, overlap=None):
     if overlap is None:
         overlap = CHUNK_OVERLAP
     
+    # Validate text input - return empty list if no meaningful content
+    if not text or text.strip() == '':
+        logger.warning("Empty or whitespace-only text provided for chunking")
+        return []
+    
     if len(text) <= chunk_size:
         return [text]
     
@@ -97,8 +102,14 @@ def process_document_from_file(document_id, file_path):
         # Extract text content
         text_content = result.document.export_to_markdown()
         
-        # Chunk the text
-        chunks = chunk_text(text_content)
+        # Validate extracted text content
+        if not text_content or text_content.strip() == '':
+            logger.warning(f"Document {document_id} has no extractable text content")
+            # Still create empty chunks list to avoid errors, but log the issue
+            chunks = []
+        else:
+            # Chunk the text
+            chunks = chunk_text(text_content)
         
         logger.info(f"Document {document_id} chunked into {len(chunks)} chunks")
         
@@ -106,23 +117,32 @@ def process_document_from_file(document_id, file_path):
         store_document_chunks_without_embeddings(document_id, chunks)
         
         # Update document metadata with extracted information
+        # Generate title from text content or use a default
+        if text_content and text_content.strip():
+            title = text_content[:100] + "..." if len(text_content) > 100 else text_content
+        else:
+            title = f"Document {document_id} (no text content)"
+            
         update_document_with_chunks(
             document_id, 
             len(chunks), 
-            title=text_content[:100] + "..." if len(text_content) > 100 else text_content,  # Simple title extraction
+            title=title,
             page_count=len(result.document.pages)
         )
         
-        # Enqueue chunks for embedding processing
+        # Enqueue chunks for embedding processing (only non-empty chunks)
+        enqueued_chunks = 0
         for i, chunk in enumerate(chunks):
-            enqueue_chunk_for_embedding(document_id, i, chunk)
+            if chunk and chunk.strip():  # Only enqueue non-empty chunks
+                enqueue_chunk_for_embedding(document_id, enqueued_chunks, chunk)
+                enqueued_chunks += 1
         
-        logger.info(f"Successfully processed document {document_id}, queued {len(chunks)} chunks for embedding")
+        logger.info(f"Successfully processed document {document_id}, queued {enqueued_chunks} chunks for embedding")
         
         return {
             'document_id': document_id,
             'chunks_count': len(chunks),
-            'message': f'Document processed and {len(chunks)} chunks queued for embedding'
+            'message': f'Document processed and {enqueued_chunks} chunks queued for embedding'
         }
     
     except Exception as e:

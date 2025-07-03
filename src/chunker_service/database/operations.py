@@ -49,19 +49,26 @@ def store_document_chunks_without_embeddings(document_id, chunks):
         cursor.execute("DELETE FROM document_chunks WHERE document_id = :doc_id", [document_id])
         
         # Insert new chunks without embeddings
+        stored_chunks = 0
         for i, chunk_text in enumerate(chunks):
+            # Validate chunk text before insertion
+            if not chunk_text or chunk_text.strip() == '':
+                logger.warning(f"Skipping empty chunk {i} for document {document_id}")
+                continue
+                
             cursor.execute("""
                 INSERT INTO document_chunks (document_id, chunk_index, chunk_text, chunk_size)
                 VALUES (:doc_id, :chunk_idx, :chunk_text, :chunk_size)
             """, {
                 'doc_id': document_id,
-                'chunk_idx': i,
+                'chunk_idx': stored_chunks,  # Use stored_chunks counter for sequential indexing
                 'chunk_text': chunk_text,
                 'chunk_size': len(chunk_text)
             })
+            stored_chunks += 1
         
         connection.commit()
-        logger.info(f"Stored {len(chunks)} chunks without embeddings for document {document_id}")
+        logger.info(f"Stored {stored_chunks} chunks without embeddings for document {document_id} (from {len(chunks)} total chunks)")
 
 def update_chunk_embedding(document_id, chunk_index, embedding):
     """Update a specific chunk with its embedding."""
