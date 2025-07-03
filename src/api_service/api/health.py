@@ -20,9 +20,9 @@ def liveness_check():
     }), 200
 
 def check_service_health(service_url, service_name):
-    """Check if a dependent service is healthy"""
+    """Check if a dependent service is ready"""
     try:
-        response = requests.get(f"{service_url}/health", timeout=5)
+        response = requests.get(f"{service_url}/health/ready", timeout=5)
         return response.status_code == 200
     except Exception:
         return False
