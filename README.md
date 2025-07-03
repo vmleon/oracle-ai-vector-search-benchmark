@@ -39,14 +39,6 @@ The system is split into three independent services:
 4. **Embedding Generation** → Vector Maker Service generates embeddings for queued chunks
 5. **Search** → API Service searches using generated embeddings
 
-## API Endpoints
-
-- **API Service**: `/upload` (POST), `/search` (POST), `/health` (GET)
-- **Vector Maker Service**: `/embeddings` (POST), `/health` (GET)
-- **Chunker Service**: `/health` (GET), `/ready` (GET)
-
-_For detailed API documentation with request/response schemas, see individual service READMEs._
-
 ## Database Schema
 
 ### Tables
@@ -67,44 +59,12 @@ For the local deployment, Oracle Database FREE 23ai is used, running as a contai
 
 ### Key Features
 
-- Vector index on embeddings for fast similarity search
-- SHA256-based file deduplication
-- Automatic chunking with configurable overlap
-- Connection pooling for optimal performance
-- Liquibase-managed schema versioning and migrations
-
-## Supported File Types
-
-Multiple formats supported via Docling: PDF, DOCX, PPTX, HTML, TXT, MD
-
-## Production Deployment
-
-### Resource Requirements
-
-- **API Service**: CPU-optimized, can scale horizontally
-- **Chunker Service**: CPU-optimized, moderate memory for document processing
-- **Vector Maker Service**: GPU with 14GB+ VRAM for embedding model
-- **Database**: Oracle Database 23ai with sufficient storage for vectors
-
-### Deployment Commands
-
-**API Service:**
-
-```bash
-gunicorn app:app -c gunicorn.conf.py
-```
-
-**Chunker Service:**
-
-```bash
-gunicorn app:app -c gunicorn.conf.py
-```
-
-**Vector Maker Service:**
-
-```bash
-gunicorn app:app -c gunicorn.conf.py
-```
+- **Oracle Advanced Queues** for decoupled async processing and scalability
+- **Microservices architecture** with independent, scalable services
+- **Multi-format document support** (PDF, DOCX, PPTX, HTML, TXT, MD) via Docling
+- **SHA256-based** file deduplication
+- Automatic **chunking** with configurable overlap
+- **Liquibase**-managed schema versioning and migrations
 
 ### Monitoring
 
@@ -112,13 +72,6 @@ gunicorn app:app -c gunicorn.conf.py
 - Comprehensive logging for debugging
 - Database connection pool monitoring
 - Queue depth monitoring for processing bottlenecks
-
-## Performance Notes
-
-- **API Service**: Horizontally scalable
-- **Chunker/Vector Services**: Single worker recommended
-- **Database**: Vector indexes for fast search
-- Use provided `gunicorn.conf.py` for production settings
 
 ## License
 

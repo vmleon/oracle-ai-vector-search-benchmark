@@ -58,26 +58,6 @@ content-type: application/json
     "limit": 5
 }
 
-# =============================================================================
-# CHUNKER SERVICE (Port 8002) - Document Chunking
-# =============================================================================
-
-### Chunker Service - Liveness Check
-GET http://localhost:8002/health/live
-
-### Chunker Service - Readiness Check (checks database)
-GET http://localhost:8002/health/ready
-
-# =============================================================================
-# VECTOR MAKER SERVICE (Port 8001) - Embedding Generation
-# =============================================================================
-
-### Vector Maker Service - Liveness Check
-GET http://localhost:8001/health/live
-
-### Vector Maker Service - Readiness Check (checks model and database)
-GET http://localhost:8001/health/ready
-
 ### Generate Embeddings - Single Text
 POST http://localhost:8001/embeddings
 content-type: application/json
