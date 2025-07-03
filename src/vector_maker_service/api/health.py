@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Blueprint, jsonify
 from models import get_model, is_model_ready
 from database import get_db_pool, is_db_ready
@@ -11,7 +12,8 @@ def liveness_check():
     """Liveness probe - checks if the application is running"""
     return jsonify({
         'status': 'alive',
-        'timestamp': os.times().system
+        'service': 'vector_maker_service',
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
     }), 200
 
 @health_bp.route('/health/ready', methods=['GET'])
@@ -19,7 +21,8 @@ def readiness_check():
     """Readiness probe - checks if the application is ready to serve requests"""
     health_status = {
         'status': 'ready',
-        'timestamp': os.times().system,
+        'service': 'vector_maker_service',
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
         'model': MODEL_NAME,
         'services': {
             'model': False,

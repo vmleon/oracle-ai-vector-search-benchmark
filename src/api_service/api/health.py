@@ -1,20 +1,14 @@
 import os
+import requests
 from datetime import datetime
 from flask import Blueprint, jsonify
 from database import get_db_pool, is_db_ready
 from database.operations import get_document_counts_by_status, get_chunks_by_embedding_status
 from services.queue import get_all_queue_depths
+from config import VECTOR_SERVICE_URL, CHUNKER_SERVICE_URL
 
 health_bp = Blueprint('health', __name__)
 
-@health_bp.route('/health', methods=['GET'])
-def health_check():
-    """Basic health check for API service"""
-    return jsonify({
-        'status': 'healthy',
-        'service': 'api_service',
-        'timestamp': os.times().system
-    }), 200
 
 @health_bp.route('/health/live', methods=['GET'])
 def liveness_check():
@@ -22,8 +16,16 @@ def liveness_check():
     return jsonify({
         'status': 'alive',
         'service': 'api_service',
-        'timestamp': os.times().system
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
     }), 200
+
+def check_service_health(service_url, service_name):
+    """Check if a dependent service is healthy"""
+    try:
+        response = requests.get(f"{service_url}/health", timeout=5)
+        return response.status_code == 200
+    except Exception:
+        return False
 
 @health_bp.route('/health/ready', methods=['GET'])
 def readiness_check():
@@ -31,9 +33,11 @@ def readiness_check():
     health_status = {
         'status': 'ready',
         'service': 'api_service',
-        'timestamp': os.times().system,
+        'timestamp': datetime.utcnow().isoformat() + 'Z',
         'services': {
-            'database': False
+            'database': False,
+            'vector_maker_service': False,
+            'chunker_service': False
         }
     }
     
@@ -54,6 +58,19 @@ def readiness_check():
     except Exception as e:
         health_status['status'] = 'not ready'
         health_status['reason'] = f'database error: {str(e)}'
+        return jsonify(health_status), 503
+    
+    # Check vector_maker_service health
+    health_status['services']['vector_maker_service'] = check_service_health(VECTOR_SERVICE_URL, 'vector_maker_service')
+    
+    # Check chunker_service health
+    health_status['services']['chunker_service'] = check_service_health(CHUNKER_SERVICE_URL, 'chunker_service')
+    
+    # Determine overall readiness
+    if not all(health_status['services'].values()):
+        health_status['status'] = 'not ready'
+        failed_services = [service for service, status in health_status['services'].items() if not status]
+        health_status['reason'] = f'dependent services not ready: {", ".join(failed_services)}'
         return jsonify(health_status), 503
     
     return jsonify(health_status), 200

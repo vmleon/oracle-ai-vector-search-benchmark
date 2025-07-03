@@ -27,3 +27,7 @@ ORACLE_POOL_MIN = int(os.getenv('ORACLE_POOL_MIN', '2'))
 ORACLE_POOL_MAX = int(os.getenv('ORACLE_POOL_MAX', '10'))
 ORACLE_POOL_INCREMENT = int(os.getenv('ORACLE_POOL_INCREMENT', '1'))
 ORACLE_POOL_PING_INTERVAL = int(os.getenv('ORACLE_POOL_PING_INTERVAL', '60'))
+
+# Dependent Services Configuration
+VECTOR_SERVICE_URL = os.getenv('VECTOR_SERVICE_URL', 'http://localhost:8001')
+CHUNKER_SERVICE_URL = os.getenv('CHUNKER_SERVICE_URL', 'http://localhost:8002')
